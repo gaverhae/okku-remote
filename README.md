@@ -200,5 +200,78 @@ Finally, we can create the main function:
 You should now be able to ``lein run`` the two projects and see them
 communicate.
 
+# Creation application
 
-You should now be able to ``lein run`` the two projects and see them communicate.
+## Setup
+
+The basic setup is yet again the same: create a new project, add a default main
+class, add the dependency, and use it in the main class. Say this project is
+named creation.
+
+We actually need a bit more of a setup. In order to be able to remotely create
+an actor, both the system that asks for the actor and the system that hosts it
+must have access to the corresponding class. To support remote actor creation,
+we are thus going to create a fourth project, which will be a library of the
+common actors between the server and the creation client.
+
+## Common actors
+
+In this case, there is only going to be one actor that needs to be in this
+shared library, but we're going to do it anyway to illustrate the point.
+
+So we create this new project, say "common-actors", we add to it a dependency
+on okku.core, we use okku.core in the core.clj file, and we this time do not
+add any ``:main`` directive to the ``project.clj`` as this is going to be
+strictly a library.
+
+In the common-actors library, we add the advanced-calculator actor, which is
+nearly identical to the simple-calculator seen earlier:
+```clojure
+(defn m-res [a b op r]
+  {:type :result :op op :1 a :2 b :result r})
+
+(defactor advanced-calculator []
+  (onReceive [{t :type o :op a :1 b :2}]
+    (dispatch-on [t o]
+      [:operation :*] (do (println (format "Calculating %s * %s" a b))
+                        (! (m-res a b :* (* a b))))
+      [:operation :d] (do (println (format "Calculating %s / %s" a b))
+                        (! (m-res a b :d (/ a b)))))))
+```
+Of course, we also had to copy the ``m-res`` function for this to work.
+
+And that is all we need in this shared library. However, do not forget to add
+this common library as a dependency to both the calculation and creation
+applications.
+
+There are two caveats here.
+
+First of all, we need the generated proxy classes to be the same at the client
+(the actor system that requires the creation of the actor) and at the server
+(the actor system in which the actor is actually created). Since Clojure
+assigns random names to classes generated at runtime, this can be problematic.
+Therefore, the ``common-actors.core`` namespace needs to be aot-compiled (in
+practice, this means adding the ``:aot common-actors.core`` line to the
+``project.clj`` file).
+
+Second of all, while it is enough to declare the shared actor library as a
+dependency in both projects to get the precompiled classes right, and available
+for remote creation, the possible external methods these classes call will not
+be made automatically available if the namespace is not explicitly required.
+This means that, if you have followed the instructions here exactly so far, you
+have to add a ``(require common-actors.core)`` form to the ``ns`` declaration
+of ``calculation.core``.
+
+However, this should not be too much of a problem, as in a real application,
+there would probably be much more shared code, practically ensuring that the
+shared library will be loaded on all sides. (For example, here, it would
+probably be a good idea to declare the ``m-res`` function only in the
+``common-actors`` package and then ``use`` it from ``creation`` and ``lookup``.
+Similarly, the very high degree of similarity between simple-calculator and
+advanced-calculator cries out for a refactoring, but that is beside the point
+of this tutorial. For a better factorization of the code between the four
+programs, check out the "refactored" branch.)
+
+As an aside, to use a local library from Leiningen, you simply need to run
+``lein install`` from the library to install it in your local maven repository.
+
