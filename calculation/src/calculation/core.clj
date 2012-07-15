@@ -1,6 +1,19 @@
-(ns calculation.core)
+(ns calculation.core
+  (use okku.core))
 
-(defn -main
-  "I don't do a whole lot."
-  [& args]
-  (println "Hello, World!"))
+(defn m-res [a b op r]
+  {:type :result :op op :1 a :2 b :result r})
+
+(defactor simple-calculator []
+  (onReceive [{t :type o :op a :1 b :2}]
+    (dispatch-on [t o]
+      [:operation :+] (do (println (format "Calculating %s + %s" a b))
+                        (! (m-res a b :+ (+ a b))))
+      [:operation :-] (do (println (format "Calculating %s - %s" a b))
+                        (! (m-res a b :- (- a b)))))))
+
+(defn -main [& args]
+  (let [system (actor-system "CalculatorApplication"
+                             :port 2552)]
+    (spawn simple-calculator [] :in system
+           :name "simpleCalculator")))
