@@ -115,8 +115,90 @@ actor:
 
 So this creates an actor with address
 ```
-akka://CalculatorApplication@localhost:2552/user/simpleCalculator
+akka://CalculatorApplication@127.0.0.1:2552/user/simpleCalculator
 ```
 
+# Actor look-up
 
-Multiple projects to simulate multiple machines.
+## Setup
+
+Now that the application server is done, let's create a second project for the
+look-up system. First, create the project as usual:
+```
+lein new lookup
+```
+then edit ``project.clj`` to add
+```
+[org.clojure.gaverhae/okku "0.1.0"]
+```
+to ``:dependencies`` and finally change the samespace declaration to
+```clojure
+(ns lookup.core
+  (use okku.core))
+```
+Do not forget to also add the
+```clojure
+:main lookup.core
+```
+option to the ``defproject`` form.
+
+## Testing the server
+
+With this in place, we can already somewhat test the calculation server. If
+you start the calculation server by running ``lein run``, and then open up a
+repl in the lookup project with ``lein repl``, you should be able to type-in
+the following commands:
+```clojure
+lookup.core=> (def as (actor-system "test" :port 2553))
+lookup.core=> (def ra (look-up "akka://CalculatorApplication@127.0.0.1:2552/user/simpleCalculator" :in as))
+lookup.core=> (.tell ra {:type :operation :op :+ :1 3 :2 5})
+```
+and you should see the correct output on the server.
+
+## Look-up application
+
+Again, we start by asking what kind of messages we want to send. We already
+defined their format, so let's create the corresponding function:
+```clojure
+(defn m-op [op a b]
+  {:type :operation :op op :1 a :2 b})
+```
+The next step is to create an actor that can send messages to the calculation
+server and receive the answers back. To mirror the original Akka tutorial, this
+actor also has to be able to receive a message asking it to compute something
+(these last messages will be received from the main loop). These messages,
+again mirroring the original tutorial, will be produced by the following
+function:
+```clojure
+(defn m-tell [actor msg]
+  {:type :proxy :target act :msg msg})
+```
+
+We can now design the look-up actor:
+```clojure
+(defactor printer []
+  (onReceive [{t :type act :target m :msg op :op a :1 b :2 r :result}]
+    (dispatch-on [t op]
+      [:proxy nil] (! act m)
+      [:result :+] (println (format "Add result: %s + %s = %s" a b r))
+      [:result :-] (println (format "Sub result: %s - %s = %s" a b r)))))
+```
+
+Finally, we can create the main function:
+```clojure
+(defn -main [& args]
+  (let [as (actor-system "LookupApplication" :port 2553)
+        la (spawn printer [] :in as)
+        ra (look-up "akka://CalculatorApplication@127.0.0.1:2552/user/simpleCalculator"
+                    :in as :name "looked-up")]
+    (while true
+      (.tell la (m-tell ra (m-op (if (zero? (rem (rand-int 100) 2)) :+ :-)
+                                 (rand-int 100) (rand-int 100))))
+      (try (Thread/sleep 2000)
+        (catch InterruptedException e)))))
+```
+You should now be able to ``lein run`` the two projects and see them
+communicate.
+
+
+You should now be able to ``lein run`` the two projects and see them communicate.
