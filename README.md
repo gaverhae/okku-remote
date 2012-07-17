@@ -328,3 +328,34 @@ actor system and the address of the remote one. This is done through the
 ``resources/application.conf`` file in each program:
 ``calculation``
 ```config
+
+
+# Distributed setup
+
+From the point of view of the three programs, they already are distributed.
+There are only two complications when the programs run on separate machines.
+The first one is that the local address has been hardcoded in the paths, but
+that is taken care of by the previous paragraph.
+
+The second complication is that the common-actors package needs to be exactly
+the same between all the applications that use it (and that would be the three
+of them in a correctly factored version). This is, however, beyond the scope of
+this tutorial (you simply have to distribute the same JAR archive, which should
+be taken care of by whatever distribution mechanism you're using).
+
+# Configuration
+
+The configuration for Okku is nearly identical to that of Akka: if you have an
+``application.conf`` file somewhere in your classpath, the values within it
+will be used by Akka in the exact same way as if you were using Akka directly.
+
+There is one difference for the configuration of actor look-up, which is not
+supported at all by Akka and added by Okku. See Okky documentation for more
+details.
+
+For each of the three projects, there is a files ``resources/application.conf``
+with an example of changing the IP address of the computer the systms run on
+and the port of each program. The ``#`` character is used to comment out a line
+in the configuration file (all configuration files are completely commented out
+in this repo). The IP address used there just happened to be the local IP
+address of my computer at the time I tried it.
