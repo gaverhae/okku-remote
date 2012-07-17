@@ -92,13 +92,14 @@ asking for a computation will be of the form:
 We can thus write the simple-calculator actor as follows:
 
 ```clojure
-(defactor simple-calculator []
-  (onReceive [{t :type o :op a :1 b :2}]
-    (dispatch-on [t o]
-      [:operation :+] (do (println (format "Calculating %s + %s" a b))
-                        (! (m-res a b :+ (+ a b))))
-      [:operation :-] (do (println (format "Calculating %s - %s" a b))
-                        (! (m-res a b :- (- a b)))))))
+(def simple-calculator
+  (actor
+    (onReceive [{t :type o :op a :1 b :2}]
+      (dispatch-on [t o]
+        [:operation :+] (do (println (format "Calculating %s + %s" a b))
+                          (! (m-res a b :+ (+ a b))))
+        [:operation :-] (do (println (format "Calculating %s - %s" a b))
+                          (! (m-res a b :- (- a b)))))))
 ```
 
 And finally, the main method, which simply creates the actor system and the
@@ -108,7 +109,7 @@ actor:
 (defn -main [& args]
   (let [system (actor-system "CalculatorApplication"
                              :port 2552)]
-    (spawn simple-calculator [] :in system
+    (spawn simple-calculator :in system
            :name "simpleCalculator")))
 
 ```
@@ -176,19 +177,20 @@ function:
 
 We can now design the look-up actor:
 ```clojure
-(defactor printer []
-  (onReceive [{t :type act :target m :msg op :op a :1 b :2 r :result}]
-    (dispatch-on [t op]
-      [:proxy nil] (! act m)
-      [:result :+] (println (format "Add result: %s + %s = %s" a b r))
-      [:result :-] (println (format "Sub result: %s - %s = %s" a b r)))))
+(def printer
+  (actor
+    (onReceive [{t :type act :target m :msg op :op a :1 b :2 r :result}]
+      (dispatch-on [t op]
+        [:proxy nil] (! act m)
+        [:result :+] (println (format "Add result: %s + %s = %s" a b r))
+        [:result :-] (println (format "Sub result: %s - %s = %s" a b r)))))
 ```
 
 Finally, we can create the main function:
 ```clojure
 (defn -main [& args]
   (let [as (actor-system "LookupApplication" :port 2553)
-        la (spawn printer [] :in as)
+        la (spawn printer :in as)
         ra (look-up "akka://CalculatorApplication@127.0.0.1:2552/user/simpleCalculator"
                     :in as :name "looked-up")]
     (while true
@@ -230,13 +232,14 @@ nearly identical to the simple-calculator seen earlier:
 (defn m-res [a b op r]
   {:type :result :op op :1 a :2 b :result r})
 
-(defactor advanced-calculator []
-  (onReceive [{t :type o :op a :1 b :2}]
-    (dispatch-on [t o]
-      [:operation :*] (do (println (format "Calculating %s * %s" a b))
-                        (! (m-res a b :* (* a b))))
-      [:operation :d] (do (println (format "Calculating %s / %s" a b))
-                        (! (m-res a b :d (/ a b)))))))
+(def advanced-calculator
+  (actor
+    (onReceive [{t :type o :op a :1 b :2}]
+      (dispatch-on [t o]
+        [:operation :*] (do (println (format "Calculating %s * %s" a b))
+                          (! (m-res a b :* (* a b))))
+        [:operation :d] (do (println (format "Calculating %s / %s" a b))
+                          (! (m-res a b :d (/ a b)))))))
 ```
 Of course, we also had to copy the ``m-res`` function for this to work.
 
@@ -286,12 +289,13 @@ lookup application.
 (defn m-tell [actor msg]
   {:type :proxy :target act :msg msg})
 
-(defactor printer []
-  (onReceive [{t :type act :target m :msg op :op a :1 b :2 r :result}]
-    (dispatch-on [t op]
-      [:proxy nil] (! act m)
-      [:result :*] (println (format "Add result: %s * %s = %s" a b r))
-      [:result :d] (println (format "Sub result: %s / %s = %s" a b r)))))
+(def printer
+  (actor
+    (onReceive [{t :type act :target m :msg op :op a :1 b :2 r :result}]
+      (dispatch-on [t op]
+        [:proxy nil] (! act m)
+        [:result :*] (println (format "Add result: %s * %s = %s" a b r))
+        [:result :d] (println (format "Sub result: %s / %s = %s" a b r)))))
 ```
 
 The interesting differences will of course be in the ``main`` function, though
@@ -299,8 +303,8 @@ it remains strikingly similar:
 ```clojure
 (defn -main [& args]
   (let [as (actor-system "CreationApplication" :port 2554)
-        la (spawn printer [] :in as)
-        ra (spawn advanced-calculator [] :in as
+        la (spawn printer :in as)
+        ra (spawn advanced-calculator :in as
                   :name "created"
                   :deploy-on "akka://CalculatorApplication@127.0.0.1:2552")]
     (while true
