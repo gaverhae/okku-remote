@@ -275,3 +275,56 @@ programs, check out the "refactored" branch.)
 As an aside, to use a local library from Leiningen, you simply need to run
 ``lein install`` from the library to install it in your local maven repository.
 
+## Creation application
+
+The creation application will be very similar to the lookup application. First,
+we define a local actor that will transmit messages, exactly as we did in the
+lookup application.
+```clojure
+(defn m-op [op a b]
+  {:type :operation :op op :1 a :2 b})
+(defn m-tell [actor msg]
+  {:type :proxy :target act :msg msg})
+
+(defactor printer []
+  (onReceive [{t :type act :target m :msg op :op a :1 b :2 r :result}]
+    (dispatch-on [t op]
+      [:proxy nil] (! act m)
+      [:result :*] (println (format "Add result: %s * %s = %s" a b r))
+      [:result :d] (println (format "Sub result: %s / %s = %s" a b r)))))
+```
+
+The interesting differences will of course be in the ``main`` function, though
+it remains strikingly similar:
+```clojure
+(defn -main [& args]
+  (let [as (actor-system "CreationApplication" :port 2554)
+        la (spawn printer [] :in as)
+        ra (spawn advanced-calculator [] :in as
+                  :name "created"
+                  :deploy-on "akka://CalculatorApplication@127.0.0.1:2552")]
+    (while true
+      (.tell la (m-tell ra (if (zero? (rem (rand-int 100) 2))
+                             (m-op :* (rand-int 100) (rand-int 100))
+                             (m-op :d (rand-int 10000) (rand-int 99)))))
+      (try (Thread/sleep 2000)
+    (catch InterruptedException e)))))
+```
+
+You should now be able to start all three projects with ``lein run`` and watch
+it all work.
+
+# Configuration files
+
+Since we have named all of our remote actors, it is easy to change the
+configuration through configuration files. Refer to the Akka documentation for
+more information on all the configurable options. Here, we shall only give a
+small example of how configuration keys relate to actors in the code.
+
+Say you want to change the three actor systems to use the public IP address of
+your computer instead of 127.0.0.1, rendering them accessible from the outside
+world. In each of the programs, you have to change the address of the local
+actor system and the address of the remote one. This is done through the
+``resources/application.conf`` file in each program:
+``calculation``
+```config
