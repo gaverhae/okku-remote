@@ -12,7 +12,7 @@ https://github.com/akka/akka/tree/master/akka-samples/akka-sample-remote
 ```
 
 The application we are going to code is a simple calculator server with two
-clients. This is a bit contrived in order to show how Akka works (ad how to use
+clients. This is a bit contrived in order to show how Akka works (and how to use
 it from Okku).
 
 The purpose of the server is to accept messages asking for some simple
@@ -41,7 +41,7 @@ machines.
 We shall actually create a fourth project to serve as a library for the other
 three, to hold the common code. This is not only good practice to reduce
 duplication, it is actually required in this case: when the second client wants
-to ask the server to create an actor, they have to sahre the exact same
+to ask the server to create an actor, they have to share the exact same
 definition of the new to-be-created actor, and that can only be achieved
 through sharing the same ``class`` files to describe it (which here will be
 contained in a ``jar`` file).
