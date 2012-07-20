@@ -15,18 +15,18 @@ The application we are going to code is a simple calculator server with two
 clients. This is a bit contrived in order to show how Akka works (ad how to use
 it from Okku).
 
-The server's purpose is to accept messages asking for some simple mathematical
-operations and to answer with results. At first, when the server is created, it
-is composed of a single actor named "simpleCalculator" that knows how to do
-additions and subtractions.
+The purpose of the server is to accept messages asking for some simple
+mathematical operations and to answer with results. At first, when the server
+is created, it is composed of a single actor named "simpleCalculator" that
+knows how to do additions and subtractions.
 
 The first client looks-up the simpleCalculator actor by its address, and asks
-it to compute some values. This is to illustrate how to interact with already
-existing actors.
+it to compute some values. This is to illustrate how to interact with
+previously existing remote actors.
 
 The second client wants to do multiplications and divisions. To do that, it
 first has to create an actor on the server, which will be called
-advancedCalculator and which will be able to handle multiplications and
+``advancedCalculator`` and which will be able to handle multiplications and
 divisions.
 
 # Setup
@@ -37,6 +37,14 @@ will work when the three programs run on the same machine, communicating
 through network connections (each progam will have a different port). See the
 end of this document for instructions on how to make it run on three separate
 machines.
+
+We shall actually create a fourth project to serve as a library for the other
+three, to hold the common code. This is not only good practice to reduce
+duplication, it is actually required in this case: when the second client wants
+to ask the server to create an actor, they have to sahre the exact same
+definition of the new to-be-created actor, and that can only be achieved
+through sharing the same ``class`` files to describe it (which here will be
+contained in a ``jar`` file).
 
 # Calculator server
 
@@ -62,7 +70,7 @@ would not be using Akka).
 
 ## simpleCalculator
 
-Before we can define the simpleCalculator, we have to set up the namespace
+Before we can define the ``simpleCalculator``, we have to set up the namespace
 properly:
 
 ```clojure
@@ -81,7 +89,7 @@ message as a map:
   {:type :result :op op :1 a :2 b :result r})
 ```
 
-Lastly, before we can handle incoming messages, we have to be know what their
+Lastly, before we can handle incoming messages, we have to know what their
 format is going to be. So let us work under the assumption that the messages
 asking for a computation will be of the form:
 
@@ -99,7 +107,7 @@ We can thus write the simple-calculator actor as follows:
         [:operation :+] (do (println (format "Calculating %s + %s" a b))
                           (! (m-res a b :+ (+ a b))))
         [:operation :-] (do (println (format "Calculating %s - %s" a b))
-                          (! (m-res a b :- (- a b)))))))
+                          (! (m-res a b :- (- a b))))))))
 ```
 
 And finally, the main method, which simply creates the actor system and the
@@ -132,7 +140,7 @@ then edit ``project.clj`` to add
 ```
 [org.clojure.gaverhae/okku "0.1.0"]
 ```
-to ``:dependencies`` and finally change the samespace declaration to
+to ``:dependencies`` and finally change the namespace declaration to
 ```clojure
 (ns lookup.core
   (use okku.core))
@@ -218,9 +226,6 @@ common actors between the server and the creation client.
 
 ## Common actors
 
-In this case, there is only going to be one actor that needs to be in this
-shared library, but we're going to do it anyway to illustrate the point.
-
 So we create this new project, say "common-actors", we add to it a dependency
 on okku.core, we use okku.core in the core.clj file, and we this time do not
 add any ``:main`` directive to the ``project.clj`` as this is going to be
@@ -245,25 +250,15 @@ Of course, we also had to copy the ``m-res`` function for this to work.
 
 And that is all we need in this shared library. However, do not forget to add
 this common library as a dependency to both the calculation and creation
-applications.
+applications (and to actually ``require`` it in the ``calculation.core``
+naespace).
 
-There are two caveats here.
-
-First of all, we need the generated proxy classes to be the same at the client
-(the actor system that requires the creation of the actor) and at the server
-(the actor system in which the actor is actually created). Since Clojure
-assigns random names to classes generated at runtime, this can be problematic.
-Therefore, the ``common-actors.core`` namespace needs to be aot-compiled (in
-practice, this means adding the ``:aot common-actors.core`` line to the
-``project.clj`` file).
-
-Second of all, while it is enough to declare the shared actor library as a
-dependency in both projects to get the precompiled classes right, and available
-for remote creation, the possible external methods these classes call will not
-be made automatically available if the namespace is not explicitly required.
-This means that, if you have followed the instructions here exactly so far, you
-have to add a ``(require common-actors.core)`` form to the ``ns`` declaration
-of ``calculation.core``.
+We need the generated proxy classes to be the same at the client (the actor
+system that requires the creation of the actor) and at the server (the actor
+system in which the actor is actually created). Since Clojure assigns random
+names to classes generated at runtime, this can be problematic.  Therefore, the
+``common-actors.core`` namespace needs to be aot-compiled (in practice, this
+means adding the ``:aot common-actors.core`` line to the ``project.clj`` file).
 
 However, this should not be too much of a problem, as in a real application,
 there would probably be much more shared code, practically ensuring that the
@@ -272,8 +267,7 @@ probably be a good idea to declare the ``m-res`` function only in the
 ``common-actors`` package and then ``use`` it from ``creation`` and ``lookup``.
 Similarly, the very high degree of similarity between simple-calculator and
 advanced-calculator cries out for a refactoring, but that is beside the point
-of this tutorial. For a better factorization of the code between the four
-programs, check out the "refactored" branch.)
+of this tutorial.)
 
 As an aside, to use a local library from Leiningen, you simply need to run
 ``lein install`` from the library to install it in your local maven repository.
@@ -329,37 +323,52 @@ Say you want to change the three actor systems to use the public IP address of
 your computer instead of 127.0.0.1, rendering them accessible from the outside
 world. In each of the programs, you have to change the address of the local
 actor system and the address of the remote one. This is done through the
-``resources/application.conf`` file in each program:
+``resources/application.conf`` file in each program. For example:
 ``calculation``
 ```config
+akka.remote.netty.hostname = "10.2.32.46"
+akka.remote.netty.port = 2652
+```
+``creation``
+```config
+akka.remote.netty {
+  hostname = "10.2.32.46"
+  port = 2653
+}
+akka.actor.deployment./created.remote = "akka://CalculatorApplication@10.2.32.46:2652"
+```
+``look-up``
+```config
+akka {
+  remote {
+    netty {
+      hostname = "10.2.32.46"
+    }
+  }
+}
+akka.remote.netty.port = 2654
+okku.lookup./lokked-up.hostname = "10.2.32.46"
+okku.lookup./lokked-up.port = 2652
+```
 
+Where the different syntaxes are used just to show them off. Again, these are
+plain Akka configuration files; see the Akka documentation for more
+information.
+
+If you have cloned the git repository for this tutorial, these configuration
+options are already in the ``resources/`` folders, you only have to uncomment
+all lines.
 
 # Distributed setup
 
 From the point of view of the three programs, they already are distributed.
 There are only two complications when the programs run on separate machines.
 The first one is that the local address has been hardcoded in the paths, but
-that is taken care of by the previous paragraph.
+that is taken care of by the previous section.
 
-The second complication is that the common-actors package needs to be exactly
-the same between all the applications that use it (and that would be the three
-of them in a correctly factored version). This is, however, beyond the scope of
-this tutorial (you simply have to distribute the same JAR archive, which should
-be taken care of by whatever distribution mechanism you're using).
-
-# Configuration
-
-The configuration for Okku is nearly identical to that of Akka: if you have an
-``application.conf`` file somewhere in your classpath, the values within it
-will be used by Akka in the exact same way as if you were using Akka directly.
-
-There is one difference for the configuration of actor look-up, which is not
-supported at all by Akka and added by Okku. See Okky documentation for more
-details.
-
-For each of the three projects, there is a files ``resources/application.conf``
-with an example of changing the IP address of the computer the systms run on
-and the port of each program. The ``#`` character is used to comment out a line
-in the configuration file (all configuration files are completely commented out
-in this repo). The IP address used there just happened to be the local IP
-address of my computer at the time I tried it.
+The second complication is that the ``common-actors`` package needs to be
+exactly the same between all the applications that use it (and that would be
+the three of them in a correctly factored version). This is, however, beyond
+the scope of this tutorial (you simply have to distribute the same ``jar``
+archive, which should be taken care of by whatever distribution mechanism
+you're using).
