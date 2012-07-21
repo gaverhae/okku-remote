@@ -74,7 +74,7 @@ Before we can define the ``simpleCalculator``, we have to set up the namespace
 properly:
 
 ```clojure
-(ns calculation.core (use okku.core))
+(ns calculation.core (:use okku.core))
 ```
 
 Next, we have to think about what kind of messages we're going to send. From
@@ -143,7 +143,7 @@ then edit ``project.clj`` to add
 to ``:dependencies`` and finally change the namespace declaration to
 ```clojure
 (ns lookup.core
-  (use okku.core))
+  (:use okku.core))
 ```
 Do not forget to also add the
 ```clojure

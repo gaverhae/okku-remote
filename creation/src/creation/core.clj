@@ -1,6 +1,6 @@
 (ns creation.core
-  (use okku.core
-       common-actors.core))
+  (:use okku.core
+        common-actors.core))
 
 (defn m-op [op a b]
   {:type :operation :op op :1 a :2 b})

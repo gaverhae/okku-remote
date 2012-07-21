@@ -1,5 +1,5 @@
 (ns common-actors.core
-  (use okku.core))
+  (:use okku.core))
 
 (defn- m-res [a b op res]
   {:type :result :1 a :2 b :op op :result res})

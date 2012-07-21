@@ -1,6 +1,6 @@
 (ns calculation.core
-  (use okku.core)
-  (require common-actors.core))
+  (:use okku.core)
+  (:require common-actors.core))
 
 (defn m-res [a b op r]
   {:type :result :op op :1 a :2 b :result r})
