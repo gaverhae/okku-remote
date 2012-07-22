@@ -1,24 +1,19 @@
+For Okku 0.1.1.
+
 # Introduction
 
 This tutorial mirrors the [Java remoting
 tutorial](http://doc.akka.io/docs/akka/2.0.2/java/remoting.html) from the Akka
-documentation. However, the code presented here will not be a direct port of
-that tutorial.
+documentation.
 
-The Akka remoting example from Java is available on github at the
-following address:
-```
-https://github.com/akka/akka/tree/master/akka-samples/akka-sample-remote
-```
+The application we are going to code is a calculator server with two clients.
+This is a bit contrived in order to show how Akka works (and how to use it from
+Okku).
 
-The application we are going to code is a simple calculator server with two
-clients. This is a bit contrived in order to show how Akka works (ad how to use
-it from Okku).
-
-The purpose of the server is to accept messages asking for some simple
-mathematical operations and to answer with results. At first, when the server
-is created, it is composed of a single actor named "simpleCalculator" that
-knows how to do additions and subtractions.
+The purpose of the server is to accept messages asking for some mathematical
+operations and to answer with results. At first, when the server is created, it
+is composed of a single actor named "simpleCalculator" that knows how to do
+additions and subtractions.
 
 The first client looks-up the simpleCalculator actor by its address, and asks
 it to compute some values. This is to illustrate how to interact with
@@ -32,19 +27,19 @@ divisions.
 # Setup
 
 To illustrate the distibuted nature of this example, we'll split it between
-three separate projects. The default configuration you'll find in this repo
-will work when the three programs run on the same machine, communicating
-through network connections (each progam will have a different port). See the
-end of this document for instructions on how to make it run on three separate
-machines.
+three separate projects. The default (as in "in-code") configuration you'll
+find in this repo will work when the three programs run on the same machine,
+communicating through network connections (each progam will have a different
+port). See the end of this document for instructions on how to make it run on
+three separate machines.
 
 We shall actually create a fourth project to serve as a library for the other
 three, to hold the common code. This is not only good practice to reduce
 duplication, it is actually required in this case: when the second client wants
-to ask the server to create an actor, they have to sahre the exact same
-definition of the new to-be-created actor, and that can only be achieved
-through sharing the same ``class`` files to describe it (which here will be
-contained in a ``jar`` file).
+to ask the server to create an actor, they have to share the exact same
+definition of the new to-be-created actor, and that can only be achieved by
+sharing the same ``class`` files to describe it (which here will be contained
+in a ``jar`` file).
 
 # Calculator server
 
@@ -53,7 +48,7 @@ contained in a ``jar`` file).
 Before we can begin writing code, we have to create a new project and set it up
 correctly. This is done by using ``lein new calculation`` and adding the
 ```clojure
-[org.clojure.gaverhae/okku "0.1.0"]
+[org.clojure.gaverhae/okku "0.1.1"]
 ```
 to the ``:dependencies`` option and the
 ```clojure
@@ -74,7 +69,8 @@ Before we can define the ``simpleCalculator``, we have to set up the namespace
 properly:
 
 ```clojure
-(ns calculation.core (:use okku.core))
+(ns calculation.core
+  (:use okku.core))
 ```
 
 Next, we have to think about what kind of messages we're going to send. From
@@ -110,8 +106,7 @@ We can thus write the simple-calculator actor as follows:
                           (! (m-res a b :- (- a b))))))))
 ```
 
-And finally, the main method, which simply creates the actor system and the
-actor:
+And finally, the main method, which creates the actor system and the actor:
 
 ```clojure
 (defn -main [& args]
@@ -126,6 +121,7 @@ So this creates an actor with address
 ```
 akka://CalculatorApplication@127.0.0.1:2552/user/simpleCalculator
 ```
+(unless this is overridden by the configuration file).
 
 # Actor look-up
 
@@ -138,7 +134,7 @@ lein new lookup
 ```
 then edit ``project.clj`` to add
 ```
-[org.clojure.gaverhae/okku "0.1.0"]
+[org.clojure.gaverhae/okku "0.1.1"]
 ```
 to ``:dependencies`` and finally change the namespace declaration to
 ```clojure
@@ -153,10 +149,10 @@ option to the ``defproject`` form.
 
 ## Testing the server
 
-With this in place, we can already somewhat test the calculation server. If
-you start the calculation server by running ``lein run``, and then open up a
-repl in the lookup project with ``lein repl``, you should be able to type-in
-the following commands:
+With this in place, we can already somewhat test the calculation server. If you
+start the calculation server by running ``lein run``, and then open up a repl
+in the ``lookup`` project with ``lein repl``, you should be able to type the
+following commands:
 ```clojure
 lookup.core=> (def as (actor-system "test" :port 2553))
 lookup.core=> (def ra (look-up "akka://CalculatorApplication@127.0.0.1:2552/user/simpleCalculator" :in as))
@@ -208,7 +204,7 @@ Finally, we can create the main function:
         (catch InterruptedException e)))))
 ```
 You should now be able to ``lein run`` the two projects and see them
-communicate.
+communicate. (You do have to run the server first.)
 
 # Creation application
 
@@ -251,7 +247,7 @@ Of course, we also had to copy the ``m-res`` function for this to work.
 And that is all we need in this shared library. However, do not forget to add
 this common library as a dependency to both the calculation and creation
 applications (and to actually ``require`` it in the ``calculation.core``
-naespace).
+namespace).
 
 We need the generated proxy classes to be the same at the client (the actor
 system that requires the creation of the actor) and at the server (the actor
@@ -269,8 +265,8 @@ Similarly, the very high degree of similarity between simple-calculator and
 advanced-calculator cries out for a refactoring, but that is beside the point
 of this tutorial.)
 
-As an aside, to use a local library from Leiningen, you simply need to run
-``lein install`` from the library to install it in your local maven repository.
+As an aside, to use a local library from Leiningen, you need to run ``lein
+install`` from the library to install it in your local maven repository.
 
 ## Creation application
 
@@ -314,10 +310,10 @@ it all work.
 
 # Configuration files
 
-Since we have named all of our remote actors, it is easy to change the
-configuration through configuration files. Refer to the Akka documentation for
-more information on all the configurable options. Here, we shall only give a
-small example of how configuration keys relate to actors in the code.
+Since we have named all of our remote actors, it is easy to change the options
+through the configuration files. Refer to the Akka documentation for more
+information on all the configurable options. Here, we shall only give a small
+example of how configuration keys relate to actors in the code.
 
 Say you want to change the three actor systems to use the public IP address of
 your computer instead of 127.0.0.1, rendering them accessible from the outside
@@ -326,13 +322,13 @@ actor system and the address of the remote one. This is done through the
 ``resources/application.conf`` file in each program. For example:
 ``calculation``
 ```config
-akka.remote.netty.hostname = "10.2.32.46"
+akka.remote.netty.hostname = "192.168.1.101"
 akka.remote.netty.port = 2652
 ```
 ``creation``
 ```config
 akka.remote.netty {
-  hostname = "10.2.32.46"
+  hostname = "192.168.1.101"
   port = 2653
 }
 akka.actor.deployment./created.remote = "akka://CalculatorApplication@10.2.32.46:2652"
@@ -342,12 +338,12 @@ akka.actor.deployment./created.remote = "akka://CalculatorApplication@10.2.32.46
 akka {
   remote {
     netty {
-      hostname = "10.2.32.46"
+      hostname = "192.168.1.101"
     }
   }
 }
 akka.remote.netty.port = 2654
-okku.lookup./lokked-up.hostname = "10.2.32.46"
+okku.lookup./lokked-up.hostname = "192.168.1.101"
 okku.lookup./lokked-up.port = 2652
 ```
 
@@ -362,13 +358,5 @@ all lines.
 # Distributed setup
 
 From the point of view of the three programs, they already are distributed.
-There are only two complications when the programs run on separate machines.
-The first one is that the local address has been hardcoded in the paths, but
-that is taken care of by the previous section.
-
-The second complication is that the ``common-actors`` package needs to be
-exactly the same between all the applications that use it (and that would be
-the three of them in a correctly factored version). This is, however, beyond
-the scope of this tutorial (you simply have to distribute the same ``jar``
-archive, which should be taken care of by whatever distribution mechanism
-you're using).
+Apart from the physical distribution of the ``jar`` files, there are no further
+concerns.
