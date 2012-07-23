@@ -284,8 +284,8 @@ lookup application.
     (onReceive [{t :type act :target m :msg op :op a :1 b :2 r :result}]
       (dispatch-on [t op]
         [:proxy nil] (! act m)
-        [:result :*] (println (format "Add result: %s * %s = %s" a b r))
-        [:result :d] (println (format "Sub result: %s / %s = %s" a b r)))))
+        [:result :*] (println (format "Mul result: %s * %s = %s" a b r))
+        [:result :d] (println (format "Div result: %s / %s = %s" a b r)))))
 ```
 
 The interesting differences will of course be in the ``main`` function, though
