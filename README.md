@@ -1,4 +1,4 @@
-For Okku 0.1.2.
+For Okku 0.1.3.
 
 # Introduction
 
@@ -48,7 +48,7 @@ in a ``jar`` file).
 Before we can begin writing code, we have to create a new project and set it up
 correctly. This is done by using ``lein new calculation`` and adding the
 ```clojure
-[org.clojure.gaverhae/okku "0.1.2"]
+[org.clojure.gaverhae/okku "0.1.3"]
 ```
 to the ``:dependencies`` option and the
 ```clojure
@@ -134,7 +134,7 @@ lein new lookup
 ```
 then edit ``project.clj`` to add
 ```
-[org.clojure.gaverhae/okku "0.1.2"]
+[org.clojure.gaverhae/okku "0.1.3"]
 ```
 to ``:dependencies`` and finally change the namespace declaration to
 ```clojure
