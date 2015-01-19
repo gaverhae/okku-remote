@@ -20,10 +20,11 @@
         la (spawn printer :in as)
         ra (spawn advanced-calculator :in as
                   :name "created"
-                  :deploy-on "akka://CalculatorApplication@127.0.0.1:2552")]
+                  :deploy-on "akka.tcp://CalculatorApplication@127.0.0.1:2552")]
     (while true
       (.tell la (m-tell ra (if (zero? (rem (rand-int 100) 2))
                              (m-op :* (rand-int 100) (rand-int 100))
-                             (m-op :d (rand-int 10000) (inc (rand-int 99))))))
+                             (m-op :d (rand-int 10000) (inc (rand-int 99)))))
+             nil)
       (try (Thread/sleep 2000)
         (catch InterruptedException e)))))

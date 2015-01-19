@@ -17,10 +17,11 @@
 (defn -main [& args]
   (let [as (actor-system "LookupApplication" :port 2553)
         la (spawn printer :in as)
-        ra (look-up "akka://CalculatorApplication@127.0.0.1:2552/user/simpleCalculator"
+        ra (look-up "akka.tcp://CalculatorApplication@127.0.0.1:2552/user/simpleCalculator"
                     :in as :name "looked-up")]
     (while true
       (.tell la (m-tell ra (m-op (if (zero? (rem (rand-int 100) 2)) :+ :-)
-                                 (rand-int 100) (rand-int 100))))
+                                 (rand-int 100) (rand-int 100)))
+             nil)
       (try (Thread/sleep 2000)
         (catch InterruptedException e)))))
